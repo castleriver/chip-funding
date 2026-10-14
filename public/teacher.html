@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>클라우드 펀딩 대시보드</title>
+<style>
+  :root { --teal:#0B4F5C; --deep:#083A44; --ink:#1B2B34; --tint:#E8F3F3; --yellow:#FFC83D; --coral:#FF6B5B; --mint:#2EC4A6; --line:#D5E4E6; --muted:#5C737A; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background: var(--tint); color: var(--ink);
+    font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif; }
+  [hidden] { display:none !important; }
+
+  #gate { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--teal); }
+  #gate form { background:#fff; border-radius:20px; padding:32px; width:min(360px, 92vw); }
+  #gate h1 { margin:0 0 6px; font-size:22px; color:var(--teal); }
+  #gate p { margin:0 0 18px; color:var(--muted); font-size:14px; }
+  #gate input { width:100%; font:inherit; font-size:22px; letter-spacing:6px; text-align:center; padding:12px; border:2px solid var(--line); border-radius:12px; }
+  #gate button { width:100%; margin-top:14px; font:inherit; font-size:18px; font-weight:700; padding:13px; border:0; border-radius:12px; background:var(--yellow); cursor:pointer; }
+  #gateErr { color:#B3261E; font-weight:700; margin-top:10px; min-height:20px; font-size:14px; }
+
+  header { background:var(--teal); color:#fff; padding:14px 24px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:22px; margin-right:auto; }
+  .stat { text-align:center; }
+  .stat b { display:block; font-size:22px; color:var(--yellow); line-height:1.1; }
+  .stat span { font-size:12px; opacity:.85; }
+  .btn { font:inherit; font-size:15px; font-weight:700; padding:10px 16px; border-radius:12px; border:0; cursor:pointer; background:var(--yellow); color:var(--ink); }
+  .btn.off { background:var(--coral); }
+  .btn.ghost { background:rgba(255,255,255,.15); color:#fff; }
+  header select { font:inherit; font-size:15px; padding:9px 10px; border-radius:10px; border:0; }
+  header label { font-size:13px; opacity:.9; }
+
+  main { display:grid; grid-template-columns: 1fr 320px; gap:20px; padding:20px 24px 40px; align-items:start; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:16px; }
+  .card { background:#fff; border-radius:20px; padding:18px 20px 16px; box-shadow: 0 2px 8px rgba(11,79,92,.08); }
+  .card.flash { animation: flash 1s ease; }
+  @keyframes flash { 0% { box-shadow:0 0 0 0 rgba(255,200,61,.9); } 40% { box-shadow:0 0 0 10px rgba(255,200,61,.5); background:#FFF7DD; } 100% { box-shadow:0 2px 8px rgba(11,79,92,.08); } }
+  .card .hd { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+  .card .gn { font-size:22px; font-weight:700; color:var(--teal); }
+  .card .mem { font-size:13px; color:var(--muted); }
+  .total { font-size:46px; font-weight:700; line-height:1; }
+  .total small { font-size:15px; font-weight:400; color:var(--muted); margin-left:6px; }
+  .rows { margin-top:12px; display:grid; gap:9px; }
+  .row { display:grid; grid-template-columns: 30px 1fr 26px; align-items:center; gap:8px; font-size:14px; }
+  .row .ic { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .row .bar { height:12px; background:var(--tint); border-radius:8px; overflow:hidden; position:relative; }
+  .row .bar i { position:absolute; left:0; top:0; bottom:0; border-radius:8px; transition: width .4s; }
+  .row .n { font-weight:700; font-size:18px; text-align:right; }
+  .legend { margin-top:16px; font-size:13px; color:var(--muted); display:flex; gap:16px; flex-wrap:wrap; }
+
+  aside .panel { background:#fff; border-radius:20px; padding:16px 18px; margin-bottom:16px; }
+  aside h2 { margin:0 0 10px; font-size:16px; color:var(--teal); display:flex; justify-content:space-between; align-items:baseline; }
+  aside h2 small { font-weight:400; color:var(--muted); font-size:12px; }
+  .list { max-height: 300px; overflow:auto; }
+  .srow { display:grid; grid-template-columns: 12px 1fr auto auto; gap:8px; align-items:center; padding:5px 0; font-size:14px; border-bottom:1px solid #EEF3F3; }
+  .dot { width:10px; height:10px; border-radius:50%; background:#C5D0D3; }
+  .dot.on { background:var(--mint); }
+  .pips { letter-spacing:2px; color:var(--teal); font-size:13px; }
+  .x { border:0; background:none; color:#A0AEB2; cursor:pointer; font-size:14px; }
+  .x:hover { color:var(--coral); }
+  .log { max-height: 260px; overflow:auto; font-size:13px; line-height:1.55; }
+  .log div { padding:3px 0; border-bottom:1px solid #EEF3F3; }
+  .empty { color:var(--muted); font-size:14px; padding:10px 0; }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <form id="gateForm">
+    <h1>교사용 대시보드</h1>
+    <p>서버를 켤 때 화면에 나온 PIN을 입력해 주세요.</p>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••">
+    <button type="submit">들어가기</button>
+    <div id="gateErr"></div>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <h1>🪙 클라우드 펀딩 대시보드</h1>
+    <div class="stat"><b id="sOnline">0</b><span>접속 중</span></div>
+    <div class="stat"><b id="sStudents">0</b><span>입장한 학생</span></div>
+    <div class="stat"><b id="sFinished">0</b><span>칩을 다 준 학생</span></div>
+    <div class="stat"><b id="sGiven">0</b><span>준 칩 합계</span></div>
+    <label>모둠 수 <select id="gcount"></select></label>
+    <button class="btn" id="toggle"></button>
+    <button class="btn ghost" id="reset">처음부터 다시</button>
+  </header>
+  <main>
+    <section>
+      <div class="grid" id="grid"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+    <aside>
+      <div class="panel">
+        <h2>학생 현황 <small>초록 점 = 접속 중 · ● 준 칩 / ○ 남은 칩</small></h2>
+        <div class="list" id="students"></div>
+      </div>
+      <div class="panel">
+        <h2>최근 활동</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script>
+const CHIPS = [
+  { id:'feasible', label:'실현 가능성', emoji:'✅', color:'#2EC4A6' },
+  { id:'creative', label:'창의성',     emoji:'💡', color:'#FFC83D' },
+  { id:'social',   label:'사회 공헌',   emoji:'🌏', color:'#FF6B5B' },
+];
+const $ = (id) => document.getElementById(id);
+let pin = sessionStorage.getItem('chip_pin') || '';
+let es = null, snap = null, prevTotals = {};
+
+async function api(path, body) {
+  const r = await fetch(path, { method: body ? 'POST' : 'GET', headers: { 'Content-Type':'application/json', 'x-pin': pin }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || '문제가 생겼어요.'); e.status = r.status; throw e; }
+  return j;
+}
+
+$('gateForm').onsubmit = async (e) => {
+  e.preventDefault(); pin = $('pin').value.trim(); $('gateErr').textContent = '';
+  try { await api('/api/teacher/state'); sessionStorage.setItem('chip_pin', pin); openApp(); }
+  catch (err) { $('gateErr').textContent = err.message; }
+};
+
+function openApp() {
+  $('gate').hidden = true; $('app').hidden = false;
+  const sel = $('gcount'); sel.innerHTML = '';
+  for (let n = 2; n <= 10; n++) { const o = document.createElement('option'); o.value = n; o.textContent = n + '모둠'; sel.appendChild(o); }
+  const legend = $('legend'); legend.innerHTML = '';
+  CHIPS.forEach((c) => { const s = document.createElement('span'); s.textContent = c.emoji + ' ' + c.label; legend.appendChild(s); });
+  if (es) es.close();
+  es = new EventSource('/events?pin=' + encodeURIComponent(pin));
+  es.onmessage = (e) => { snap = JSON.parse(e.data); render(); };
+}
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
+
+function render() {
+  const t = snap.totals;
+  $('sOnline').textContent = t.online; $('sStudents').textContent = t.students;
+  $('sFinished').textContent = t.finished; $('sGiven').textContent = t.given;
+  if (document.activeElement !== $('gcount')) $('gcount').value = snap.groupCount;
+  const tg = $('toggle'); tg.textContent = snap.open ? '투자 잠시 멈추기' : '투자 다시 열기'; tg.className = 'btn' + (snap.open ? '' : ' off');
+
+  const max = Math.max(3, ...snap.groups.flatMap((g) => CHIPS.map((c) => g[c.id])));
+  const grid = $('grid'); grid.innerHTML = '';
+  for (const g of snap.groups) {
+    const card = el('div', 'card');
+    if (prevTotals[g.group] !== undefined && g.total > prevTotals[g.group]) card.classList.add('flash');
+    prevTotals[g.group] = g.total;
+    const hd = el('div', 'hd'); hd.append(el('span', 'gn', g.group + '모둠'), el('span', 'mem', g.members + '명'));
+    const tot = el('div', 'total', String(g.total)); tot.append(el('small', '', '칩 받음'));
+    const rows = el('div', 'rows');
+    for (const c of CHIPS) {
+      const r = el('div', 'row');
+      const ic = el('div', 'ic', c.emoji); ic.style.background = c.color;
+      const bar = el('div', 'bar'); const fill = document.createElement('i');
+      fill.style.background = c.color; fill.style.width = (g[c.id] / max * 100) + '%'; bar.appendChild(fill);
+      r.append(ic, bar, el('div', 'n', String(g[c.id]))); r.title = c.label;
+      rows.appendChild(r);
+    }
+    card.append(hd, tot, rows); grid.appendChild(card);
+  }
+
+  const sl = $('students'); sl.innerHTML = '';
+  if (!snap.students.length) sl.appendChild(el('div', 'empty', '아직 입장한 학생이 없어요.'));
+  for (const s of snap.students) {
+    const row = el('div', 'srow');
+    const d = el('span', 'dot' + (s.online ? ' on' : ''));
+    const nm = el('span', '', s.nick + ' (' + s.group + '모둠)');
+    const pips = el('span', 'pips', '●'.repeat(3 - s.left) + '○'.repeat(s.left));
+    const x = el('button', 'x', '✕'); x.title = '내보내기';
+    x.onclick = async () => { if (confirm(s.nick + ' 학생을 내보낼까요?')) { snap = await api('/api/teacher/remove', { nick: s.nick }); render(); } };
+    row.append(d, nm, pips, x); sl.appendChild(row);
+  }
+
+  const lg = $('log'); lg.innerHTML = '';
+  if (!snap.log.length) lg.appendChild(el('div', 'empty', '아직 활동이 없어요.'));
+  for (const l of snap.log) {
+    const c = CHIPS.find((x) => x.id === l.chip);
+    const time = new Date(l.ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    lg.appendChild(el('div', '', time + '  ' + l.nick + ' → ' + (l.to ? l.to + '모둠 ' + c.emoji : c.emoji + ' 되돌림')));
+  }
+}
+
+$('toggle').onclick = async () => { try { snap = await api('/api/teacher/config', { open: !snap.open }); render(); } catch (e) { alert(e.message); } };
+$('gcount').onchange = async () => {
+  try { snap = await api('/api/teacher/config', { groupCount: $('gcount').value }); render(); }
+  catch (e) { alert(e.message); $('gcount').value = snap.groupCount; }
+};
+$('reset').onclick = async () => {
+  if (!confirm('모든 학생과 칩 기록을 지우고 처음부터 시작할까요?')) return;
+  try { snap = await api('/api/teacher/reset', {}); prevTotals = {}; render(); } catch (e) { alert(e.message); }
+};
+
+if (pin) api('/api/teacher/state').then(openApp).catch(() => { sessionStorage.removeItem('chip_pin'); });
+</script>
+</body>
+</html>

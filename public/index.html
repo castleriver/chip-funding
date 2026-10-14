@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>클라우드 펀딩 투자하기</title>
+<style>
+  :root {
+    --teal:#0B4F5C; --ink:#1B2B34; --tint:#E8F3F3; --white:#fff;
+    --yellow:#FFC83D; --coral:#FF6B5B; --mint:#2EC4A6; --line:#D5E4E6; --muted:#5C737A;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; background:var(--white); color:var(--ink);
+    font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif; }
+  body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 16px 16px 40px; }
+  h1 { font-size: 24px; margin: 8px 0 4px; color: var(--teal); }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 15px; }
+  label.t { display:block; font-weight:700; margin: 18px 0 8px; }
+  input[type=text] { width:100%; font: inherit; font-size:20px; padding: 14px; border:2px solid var(--line);
+    border-radius:14px; background:var(--tint); color: var(--ink); }
+  input[type=text]:focus { outline:none; border-color: var(--teal); background:#fff; }
+  .groups { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
+  .gbtn { font: inherit; font-size:18px; font-weight:700; padding:16px 0; border-radius:14px; border:2px solid var(--line);
+    background:var(--tint); color:var(--ink); cursor:pointer; }
+  .gbtn.on { background:var(--teal); color:#fff; border-color:var(--teal); }
+  .primary { width:100%; margin-top:24px; font: inherit; font-size:20px; font-weight:700; padding:16px; border:0;
+    border-radius:16px; background:var(--yellow); color:var(--ink); cursor:pointer; }
+  .primary:disabled { opacity:.45; cursor:default; }
+  .err { color:#B3261E; font-weight:700; margin-top:12px; min-height:22px; }
+
+  .top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+  .who { font-size:18px; font-weight:700; color:var(--teal); }
+  .who small { color:var(--muted); font-weight:400; }
+  .pill { font-size:13px; font-weight:700; padding:6px 12px; border-radius:999px; background:var(--mint); color:var(--ink); white-space:nowrap; }
+  .pill.off { background:var(--coral); }
+  .hint { background:var(--tint); border-radius:14px; padding:12px 14px; font-size:15px; margin: 8px 0 16px; line-height:1.5; }
+  h2 { font-size:17px; margin: 18px 0 10px; color: var(--teal); }
+
+  .chips { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
+  .chip { position:relative; text-align:center; padding:12px 6px 10px; border-radius:18px; border:3px solid var(--line);
+    background:#fff; cursor:pointer; font:inherit; color:var(--ink); }
+  .chip.sel { border-color: var(--teal); box-shadow: 0 4px 12px rgba(11,79,92,.25); background: var(--tint); }
+  .coin { width:64px; height:64px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center;
+    font-size:30px; outline:3px dashed rgba(27,43,52,.55); outline-offset:-8px; }
+  .chip .nm { font-weight:700; font-size:15px; }
+  .chip .st { font-size:13px; color: var(--muted); margin-top:3px; min-height:18px; }
+  .chip.done .st { color: var(--teal); font-weight:700; }
+  .undo { margin-top:6px; font: inherit; font-size:12px; padding:5px 10px; border-radius:10px; border:1px solid var(--line); background:#fff; color:var(--ink); cursor:pointer; }
+
+  .glist { display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; }
+  .g { text-align:left; font:inherit; padding:16px 14px; border-radius:16px; border:2px solid var(--line); background:var(--tint);
+    color:var(--ink); cursor:pointer; min-height:76px; }
+  .g:active { transform: scale(.98); }
+  .g .gn { font-size:20px; font-weight:700; }
+  .g .gv { margin-top:6px; font-size:20px; min-height:26px; letter-spacing:2px; }
+  .g.mine { background:#F2F2F2; color:#8A9A9F; border-style:dashed; cursor:default; }
+  .g.mine .gv { font-size:13px; letter-spacing:0; }
+  .toast { position:fixed; left:50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px);
+    background: var(--ink); color:#fff; padding:12px 18px; border-radius:14px; font-weight:700; font-size:15px; opacity:0;
+    transition: .25s; pointer-events:none; max-width: 92vw; text-align:center; z-index:10; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .done-msg { margin-top:16px; padding:14px; border-radius:14px; background: var(--yellow); font-weight:700; text-align:center; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="join" hidden>
+    <h1>클라우드 펀딩 🪙</h1>
+    <p class="sub">닉네임과 우리 모둠을 정하고 들어가요.</p>
+    <label class="t" for="nick">닉네임</label>
+    <input id="nick" type="text" maxlength="10" placeholder="예: 별빛탐험가" autocomplete="off">
+    <label class="t">우리 모둠</label>
+    <div class="groups" id="gpick"></div>
+    <button class="primary" id="enter" disabled>입장하기</button>
+    <div class="err" id="joinErr"></div>
+  </section>
+
+  <section id="main" hidden>
+    <div class="top">
+      <div class="who"><span id="meNick"></span> <small id="meGroup"></small></div>
+      <span class="pill" id="status"></span>
+    </div>
+    <div class="hint" id="hint"></div>
+
+    <h2>내 투자 칩</h2>
+    <div class="chips" id="chips"></div>
+
+    <h2>어느 모둠에 줄까요?</h2>
+    <div class="glist" id="glist"></div>
+    <div class="done-msg" id="doneMsg" hidden>칩을 모두 줬어요! 발표를 더 들으면서 바꿀 수도 있어요.</div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const CHIPS = [
+  { id:'feasible', label:'실현 가능성', emoji:'✅', color:'#2EC4A6', desc:'실현 가능한 기업' },
+  { id:'creative', label:'창의성',     emoji:'💡', color:'#FFC83D', desc:'창의적인 아이디어를 가진 기업' },
+  { id:'social',   label:'사회 공헌',   emoji:'🌏', color:'#FF6B5B', desc:'세상에 도움이 되는 기업' },
+];
+const $ = (id) => document.getElementById(id);
+let token = localStorage.getItem('chip_token');
+let me = null, selected = null, pickedGroup = null, es = null, toastTimer = null;
+
+async function api(path, body) {
+  const r = await fetch(path, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || '문제가 생겼어요.'); e.status = r.status; throw e; }
+  return j;
+}
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ---------- 입장 ----------
+async function showJoin() {
+  if (es) { es.close(); es = null; }
+  me = null; selected = null;
+  $('main').hidden = true; $('join').hidden = false;
+  const cfg = await api('/api/config');
+  const box = $('gpick'); box.innerHTML = '';
+  for (let g = 1; g <= cfg.groupCount; g++) {
+    const b = document.createElement('button');
+    b.className = 'gbtn' + (g === pickedGroup ? ' on' : ''); b.textContent = g + '모둠';
+    b.onclick = () => { pickedGroup = g; [...box.children].forEach((c, i) => c.classList.toggle('on', i + 1 === g)); checkJoin(); };
+    box.appendChild(b);
+  }
+  checkJoin();
+}
+function checkJoin() { $('enter').disabled = !($('nick').value.trim() && pickedGroup); }
+$('nick').addEventListener('input', checkJoin);
+$('enter').onclick = async () => {
+  $('joinErr').textContent = '';
+  try {
+    const r = await api('/api/join', { nick: $('nick').value, group: pickedGroup });
+    token = r.token; localStorage.setItem('chip_token', token);
+    start(r.me);
+  } catch (e) { $('joinErr').textContent = e.message; }
+};
+
+// ---------- 메인 ----------
+function start(first) {
+  me = first; $('join').hidden = true; $('main').hidden = false; render();
+  if (es) es.close();
+  es = new EventSource('/events?token=' + token);
+  es.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    if (d.removed) { localStorage.removeItem('chip_token'); token = null; es.close(); showJoin(); return; }
+    me = d; render();
+  };
+}
+function chipOf(id) { return CHIPS.find((c) => c.id === id); }
+
+function render() {
+  if (!me) return;
+  $('meNick').textContent = me.nick;
+  $('meGroup').textContent = '· ' + me.group + '모둠';
+  const st = $('status');
+  st.textContent = me.open ? '투자 중' : '잠시 멈춤'; st.className = 'pill' + (me.open ? '' : ' off');
+
+  const sel = selected && chipOf(selected);
+  $('hint').textContent = !me.open ? '선생님이 투자를 잠시 멈췄어요. 조금만 기다려요.'
+    : sel ? sel.emoji + ' ' + sel.label + ' 칩 — ' + sel.desc + '에게 줘요. 아래에서 모둠을 눌러요!'
+    : '① 칩을 고르고 ② 모둠을 눌러서 칩을 줘요. 칩은 한 종류에 1개씩이에요.';
+
+  const chips = $('chips'); chips.innerHTML = '';
+  for (const c of CHIPS) {
+    const to = me.gave[c.id];
+    const el = document.createElement('div');
+    el.className = 'chip' + (selected === c.id ? ' sel' : '') + (to ? ' done' : '');
+    el.setAttribute('role', 'button');
+    const coin = document.createElement('div'); coin.className = 'coin'; coin.style.background = c.color; coin.textContent = c.emoji;
+    const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = c.label;
+    const s = document.createElement('div'); s.className = 'st'; s.textContent = to ? '→ ' + to + '모둠' : '남음';
+    el.append(coin, nm, s);
+    if (to && me.open) {
+      const u = document.createElement('button'); u.className = 'undo'; u.textContent = '되돌리기';
+      u.onclick = async (ev) => { ev.stopPropagation(); try { me = await api('/api/undo', { token, chip: c.id }); render(); } catch (e) { toast(e.message); } };
+      el.append(u);
+    }
+    el.onclick = () => { selected = (selected === c.id) ? null : c.id; render(); };
+    chips.appendChild(el);
+  }
+
+  const list = $('glist'); list.innerHTML = '';
+  for (let g = 1; g <= me.groupCount; g++) {
+    const b = document.createElement('button');
+    const mine = g === me.group;
+    b.className = 'g' + (mine ? ' mine' : '');
+    const gn = document.createElement('div'); gn.className = 'gn'; gn.textContent = g + '모둠';
+    const gv = document.createElement('div'); gv.className = 'gv';
+    gv.textContent = mine ? '우리 모둠' : CHIPS.filter((c) => me.gave[c.id] === g).map((c) => c.emoji).join('');
+    b.append(gn, gv);
+    b.onclick = () => give(g, mine);
+    list.appendChild(b);
+  }
+  $('doneMsg').hidden = !CHIPS.every((c) => me.gave[c.id]);
+}
+
+async function give(g, mine) {
+  if (mine) return toast('우리 모둠에는 칩을 줄 수 없어요.');
+  if (!me.open) return toast('지금은 칩을 줄 수 없어요.');
+  if (!selected) return toast('먼저 칩을 골라요 👆');
+  const c = chipOf(selected);
+  try {
+    me = await api('/api/give', { token, chip: selected, group: g });
+    selected = null; render();
+    toast(c.emoji + ' ' + c.label + ' 칩을 ' + g + '모둠에 줬어요!');
+  } catch (e) { toast(e.message); }
+}
+
+// ---------- 시작 ----------
+(async () => {
+  if (token) {
+    try { start(await api('/api/me?token=' + token)); return; }
+    catch (e) { localStorage.removeItem('chip_token'); token = null; }
+  }
+  showJoin();
+})();
+</script>
+</body>
+</html>
